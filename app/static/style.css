@@ -1,0 +1,264 @@
+/* app/static/style.css - all styling for the app lives in this one file */
+:root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --amber: #b45309;
+    --amber-bg: #fef3c7;
+    --red: #b91c1c;
+    --red-bg: #fee2e2;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+header {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: #fff;
+    padding: 28px 20px;
+    text-align: center;
+}
+
+header h1 {
+    margin: 0 0 6px;
+    font-size: 1.7rem;
+}
+
+header p {
+    margin: 0;
+    opacity: 0.9;
+}
+
+main {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 20px;
+    display: grid;
+    gap: 20px;
+}
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.card h2 {
+    margin: 0 0 14px;
+    font-size: 1.15rem;
+}
+
+/* ---------- stats ---------- */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+}
+
+.stat .num {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.stat .label {
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.stat.unique .num {
+    color: var(--green);
+}
+
+.stat.redundant .num {
+    color: var(--amber);
+}
+
+.stat.false-positive .num {
+    color: var(--red);
+}
+
+/* ---------- form ---------- */
+form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.field label {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.field input {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+}
+
+.field input:focus {
+    outline: 2px solid var(--primary);
+    border-color: transparent;
+}
+
+.hint {
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
+button {
+    grid-column: 1 / -1;
+    padding: 12px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--primary-dark);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* ---------- result banner ---------- */
+#result {
+    display: none;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border-left: 5px solid;
+}
+
+#result.unique {
+    display: block;
+    background: var(--green-bg);
+    border-color: var(--green);
+}
+
+#result.redundant {
+    display: block;
+    background: var(--amber-bg);
+    border-color: var(--amber);
+}
+
+#result.false-positive {
+    display: block;
+    background: var(--red-bg);
+    border-color: var(--red);
+}
+
+#result.error {
+    display: block;
+    background: var(--red-bg);
+    border-color: var(--red);
+}
+
+/* ---------- tables ---------- */
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th,
+td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+th {
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+td.empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 18px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badge.unique {
+    background: var(--green-bg);
+    color: var(--green);
+}
+
+.badge.redundant {
+    background: var(--amber-bg);
+    color: var(--amber);
+}
+
+.badge.false-positive {
+    background: var(--red-bg);
+    color: var(--red);
+}
+
+footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding: 20px;
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 700px) {
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    form {
+        grid-template-columns: 1fr;
+    }
+}
