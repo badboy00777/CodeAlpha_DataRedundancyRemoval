@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Data Redundancy Removal System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <header>
+        <h1>Data Redundancy Removal System</h1>
+        <p>Only unique, verified records are saved to the database.</p>
+    </header>
+
+    <main>
+        <!-- Live counters (from /api/stats) -->
+        <section class="stats">
+            <div class="stat unique"><span class="num" id="s-unique">0</span><span class="label">UNIQUE</span></div>
+            <div class="stat redundant"><span class="num" id="s-redundant">0</span><span class="label">REDUNDANT</span>
+            </div>
+            <div class="stat false-positive"><span class="num" id="s-fp">0</span><span class="label">FALSE
+                    POSITIVE</span></div>
+            <div class="stat"><span class="num" id="s-stored">0</span><span class="label">STORED RECORDS</span></div>
+        </section>
+
+        <!-- Submit form -->
+        <section class="card">
+            <h2>Submit a record</h2>
+            <form id="record-form" novalidate>
+                <div class="field">
+                    <label for="full_name">Full name *</label>
+                    <input id="full_name" name="full_name" type="text" maxlength="100" placeholder="Ali Khan">
+                </div>
+                <div class="field">
+                    <label for="email">Email *</label>
+                    <input id="email" name="email" type="email" maxlength="254" placeholder="ali@example.com">
+                </div>
+                <div class="field">
+                    <label for="phone">Phone *</label>
+                    <input id="phone" name="phone" type="text" maxlength="30" placeholder="0300-1234567">
+                    <span class="hint">10 to 15 digits, e.g. 0300-1234567 or +92 300 1234567</span>
+                </div>
+                <div class="field">
+                    <label for="city">City (optional)</label>
+                    <input id="city" name="city" type="text" maxlength="80" placeholder="Faisalabad">
+                </div>
+                <button type="submit" id="submit-btn">Check and save</button>
+            </form>
+            <div id="result" role="status"></div>
+        </section>
+
+        <!-- Stored (unique) records -->
+        <section class="card">
+            <h2>Stored records (unique and verified only)</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>City</th>
+                            <th>Saved at</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Audit log -->
+        <section class="card">
+            <h2>Recent activity (every submission is logged)</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Verdict</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>CodeAlpha Cloud Computing Internship - Task 1</footer>
+
+    <script>
+        // Small helpers
+        function $(id) { return document.getElementById(id); }
+
+        function cssClass(verdict) {
+            // "FALSE_POSITIVE" -> "false-positive"
+            return String(verdict || "").toLowerCase().replace("_", "-");
+        }
+
+        function fmtDate(value) {
+            var d = new Date(value);
+            return isNaN(d) ? "" : d.toLocaleString();
+        }
+
+        // SECURITY: we only ever use textContent (never innerHTML) for user data,
+        // so any HTML typed by a user is shown as plain text (no XSS).
+        function addCell(row, text) {
+            var td = document.createElement("td");
+            td.textContent = (text === null || text === undefined) ? "" : text;
+            row.appendChild(td);
+            return td;
+        }
+
+        function addBadge(row, verdict) {
+            var td = document.createElement("td");
+            var span = document.createElement("span");
+            span.className = "badge " + cssClass(verdict);
+            span.textContent = verdict;
+            td.appendChild(span);
+            row.appendChild(td);
+        }
+
+        function emptyRow(body, cols, message) {
+            var tr = document.createElement("tr");
+            var td = document.createElement("td");
+            td.className = "empty";
+            td.colSpan = cols;
+            td.textContent = message;
+            tr.appendChild(td);
+            body.appendChild(tr);
+        }
+
+        // AJAX helper: always returns {status, data}
+        async function api(method, path, body) {
+            var res = await fetch(path, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: body ? JSON.stringify(body) : undefined
+            });
+            var data = {};
+            try { data = await res.json(); } catch (e) { /* not JSON */ }
+            return { status: res.status, data: data };
+        }
+
+        // ---------- loaders ----------
+        async function loadStats() {
+            var r = await api("GET", "/api/stats");
+            $("s-unique").textContent = r.data.UNIQUE || 0;
+            $("s-redundant").textContent = r.data.REDUNDANT || 0;
+            $("s-fp").textContent = r.data.FALSE_POSITIVE || 0;
+            $("s-stored").textContent = r.data.stored_records || 0;
+        }
+
+        async function loadRecords() {
+            var r = await api("GET", "/api/records");
+            var body = $("records-body");
+            body.textContent = "";
+            if (!Array.isArray(r.data) || r.data.length === 0) {
+                emptyRow(body, 6, "No records yet.");
+                return;
+            }
+            r.data.forEach(function (rec) {
+                var tr = document.createElement("tr");
+                addCell(tr, rec.id);
+                addCell(tr, rec.full_name);
+                addCell(tr, rec.email);
+                addCell(tr, rec.phone);
+                addCell(tr, rec.city);
+                addCell(tr, fmtDate(rec.created_at));
+                body.appendChild(tr);
+            });
+        }
+
+        async function loadAudit() {
+            var r = await api("GET", "/api/audit");
+            var body = $("audit-body");
+            body.textContent = "";
+            if (!Array.isArray(r.data) || r.data.length === 0) {
+                emptyRow(body, 5, "No activity yet.");
+                return;
+            }
+            r.data.forEach(function (row) {
+                var tr = document.createElement("tr");
+                addCell(tr, fmtDate(row.created_at));
+                addCell(tr, row.submitted_name);
+                addCell(tr, row.submitted_email);
+                addBadge(tr, row.verdict);
+                addCell(tr, row.reason);
+                body.appendChild(tr);
+            });
+        }
+
+        function loadAll() {
+            return Promise.all([loadStats(), loadRecords(), loadAudit()]);
+        }
+
+        // ---------- result banner ----------
+        function showResult(cls, text) {
+            var box = $("result");
+            box.className = cls;
+            box.textContent = text;
+        }
+
+        // ---------- form submit ----------
+        $("record-form").addEventListener("submit", async function (event) {
+            event.preventDefault();
+            var btn = $("submit-btn");
+            btn.disabled = true;
+            try {
+                var payload = {
+                    full_name: $("full_name").value,
+                    email: $("email").value,
+                    phone: $("phone").value,
+                    city: $("city").value
+                };
+                var r = await api("POST", "/api/records", payload);
+                var verdict = r.data.verdict;
+
+                if (!verdict) {
+                    showResult("error", "Server error (" + r.status + "). Please try again.");
+                } else if (verdict === "UNIQUE") {
+                    showResult("unique", "UNIQUE: saved as record #" + r.data.record_id + ".");
+                    $("record-form").reset();
+                } else if (verdict === "REDUNDANT") {
+                    showResult("redundant", "REDUNDANT: not saved. " + r.data.reason +
+                        " (matches record #" + r.data.matched_record_id + ").");
+                } else {
+                    showResult("false-positive", "FALSE POSITIVE: not saved. " + r.data.reason);
+                }
+                await loadAll();
+            } catch (err) {
+                showResult("error", "Could not reach the server.");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        loadAll();
+    </script>
+</body>
+
+</html>
